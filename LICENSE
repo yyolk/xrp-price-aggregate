@@ -1,8 +1,6 @@
 ISC License
 
-Based on original work by Wietse Wind at
-https://github.com/XRPL-Labs/XRP-Price-Aggregator, which is published without a
-license.
+Based on original work by Wietse Wind at https://github.com/XRPL-Labs/XRP-Price-Aggregator, which is published without a license. The aggregate workflow and filtering formula were used without explicit permission.
 
 Copyright 2021 Joseph Chiocchi <joe@yolk.cc>
 

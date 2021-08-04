@@ -5,7 +5,7 @@ Based on [XRPL-Labs/XRP-Price-Aggregator](https://github.com/XRPL-Labs/XRP-Price
 
 # Usage
 
-1. `pip install`
+1. `pip install xrp-price-aggregate`
 
 2. Run directly as a module or import and provide aggregation count (how many
    rounds) along with delay between each round.

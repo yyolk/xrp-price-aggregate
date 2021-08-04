@@ -50,6 +50,7 @@ setup(
         # that you indicate you support Python 3. These classifiers are *not*
         # checked by 'pip install'. See instead 'python_requires' below.
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3 :: Only",
@@ -57,7 +58,7 @@ setup(
     keywords="xrp, xrpl, ccxt, cryptocurrency",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
-    python_requires=">=3.8, <4",
+    python_requires=">=3.7, <4",
     install_requires=install_requires,
     project_urls={
         "Bug Reports": "https://github.com/yyolk/xrp-price-aggregate/issues",

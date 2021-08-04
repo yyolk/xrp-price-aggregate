@@ -132,17 +132,37 @@ async def _aggregate_multiple(count=1, delay=1) -> Dict[str, Any]:
     finally:
         # we have no return, this is run "on the way out"
         close_exchanges_tasks = [exchange.close() for exchange in exchanges]
-        await asyncio.gather(*close_exchanges_tasks)
+        await asyncio.shield(asyncio.gather(*close_exchanges_tasks))
+
+
+def _compute_timeout(count, delay) -> int:
+    """dumb logic for a max timeout, this could be better
+
+    dumb logic for a max timeout, this could be better
+
+
+    max_tasks_fn_timeout is 10 seconds and is the anticipated amount of time to
+    do all concurrent requests in the workflow's (see ``tasks_fn``)
+
+    """
+    max_tasks_fn_timeout = 10
+    return (count * max_tasks_fn_timeout) + (delay * count)
 
 
 async def as_awaitable_json(count=1, delay=1) -> str:
     return json.dumps(
-        await _aggregate_multiple(count, delay), default=default_for_decimal
+        await asyncio.wait_for(
+            _aggregate_multiple(count, delay),
+            timeout=_compute_timeout(count, delay),
+        ),
+        default=default_for_decimal,
     )
 
 
 async def as_awaitable_dict(count=1, delay=1) -> Dict[str, Any]:
-    return await _aggregate_multiple(count, delay)
+    return await asyncio.wait_for(
+        _aggregate_multiple(count, delay), timeout=_compute_timeout(count, delay)
+    )
 
 
 def as_json(count=1, delay=1) -> str:

@@ -1,10 +1,23 @@
+"""
+aggregate_filter.py
+
+This is the main aggregate and filter workflow.
+"""
 import asyncio
 import json
 import logging
 import statistics
 
 from decimal import Decimal
-from typing import Any, Awaitable, Callable, Dict, List, Set, Tuple
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Set,
+    Tuple,
+)
 
 from .providers import ExchangeClient, generate_default
 
@@ -68,31 +81,35 @@ async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
         Dict of [str, Any]: The aggregate results
     """
     exchanges: Set[ExchangeClient]
-    exchange_with_tickers: List[Tuple[ExchangeClient, str]]
-    exchanges, exchange_with_tickers = await generate_default()
-    tasks_fn: Callable[[], List[Awaitable[Tuple[str, Decimal]]]] = lambda: [
-        _async_get_price(exchange, ticker) for exchange, ticker in exchange_with_tickers
-    ]
+    exchange_with_pairs: List[Tuple[ExchangeClient, str]]
+    exchanges, exchange_with_pairs = await generate_default()
+    tasks_fn: Callable[[], List[Awaitable[Tuple[str, Decimal]]]] = lambda: list(
+        _async_get_price(exchange, pair) for exchange, pair in exchange_with_pairs
+    )
     try:
-        all_results = []
+        all_results: List[Tuple[str, Decimal]] = []
         for _ in range(count):
             all_results += await asyncio.gather(*tasks_fn())
             # don't delay when calling once
             if count != 1:
                 await asyncio.sleep(delay)
 
-        raw_results = [raw_result for _, raw_result in all_results]
-        # set up our container for named results
-        raw_results_named: Dict[str, List] = {
-            exchange.id: list() for exchange in exchanges
+        # set up our containers for results
+        raw_results: List[Decimal] = []
+        raw_results_named: Dict[str, List[Decimal]] = {
+            exchange.id: [] for exchange in exchanges
         }
-        # fill our container with named results
+        # fill our containers with named results
         for exchange_name, raw_result in all_results:
+            raw_results.append(raw_result)
             raw_results_named[exchange_name].append(raw_result)
 
+        # 1. Calculate raw part of aggregate results
+        # calculate standard deviation and median from all results
         raw_stdev = statistics.stdev(raw_results)
         raw_median = statistics.median(raw_results)
 
+        # compile the raw part of the aggregate results
         raw = {
             "raw_results_named": raw_results_named,
             "raw_results": raw_results,
@@ -101,16 +118,22 @@ async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
         }
         logging.debug("raw is %s", raw)
 
+        # 2. Calculate filtered part of the aggregate results
+        # pull acceptable results from all the raw_results
         filtered_results = list(
             filter(
-                # take the result subtracted from the median if it's lower
-                # than the standard deviation
+                # produce an accetable result from the raw results
+                # compare result subtracted from the median
+                # if it's lower than the standard deviation, it's acceptable
                 lambda result: abs(result - raw_median) < raw_stdev,
                 raw_results,
             )
         )
+        # calculate median and mean from our filtered results
         filtered_median = statistics.median(filtered_results)
         filtered_mean = statistics.mean(filtered_results)
+
+        # compile the filtered part of the aggregate results
         filtered = {
             "filtered_results": filtered_results,
             "filtered_median": filtered_median,
@@ -118,6 +141,7 @@ async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
         }
         logging.debug("filtered is %s", filtered)
 
+        # compile all parts together, as the aggregate results
         return {
             **raw,
             **filtered,
@@ -130,16 +154,17 @@ async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
 
 
 def _compute_timeout(count: int, delay: int) -> int:
-    """dumb logic for a max timeout, this could be better
+    """Dumb logic for a max timeout, this could be better
 
-    dumb logic for a max timeout, this could be better
+    ``max_tasks_fn_timeout`` is the amount of seconds and is the anticipated
+    amount of time to do all concurrent requests in the workflow's
+    (see ``tasks_fn``).
 
-
-    max_tasks_fn_timeout is 10 seconds and is the anticipated amount of time to
-    do all concurrent requests in the workflow's (see ``tasks_fn``)
-
+    Empirically, when all default tasks are concurrently requested on my
+    machine, it takes around 6 seconds. 15 seconds is double this time with a
+    3 seconds of buffer (2 * 6) + 3.
     """
-    max_tasks_fn_timeout = 15
+    max_tasks_fn_timeout = 15  # 15 seconds
     return (count * max_tasks_fn_timeout) + (delay * count)
 
 

@@ -52,7 +52,7 @@ async def _async_get_price(exchange, pair: str) -> Tuple[str, Decimal]:
     )
 
 
-async def _cycle_tasks(
+async def _cycle_tasks_fn(
     tasks_fn: Callable[[], List[Awaitable[Tuple[str, Decimal]]]], count: int, delay: int
 ) -> List[Tuple[str, Decimal]]:
     """
@@ -89,7 +89,7 @@ async def _aggregate_multiple(count=1, delay=1) -> Dict[str, Any]:
         _async_get_price(*exchange) for exchange in exchange_with_tickers
     ]
     try:
-        all_results = await _cycle_tasks(tasks_fn, count=count, delay=delay)
+        all_results = await _cycle_tasks_fn(tasks_fn, count=count, delay=delay)
 
         raw_results = [raw_result for _, raw_result in all_results]
         # set up our container for named results

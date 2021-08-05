@@ -61,6 +61,8 @@ Based on [XRPL-Labs/XRP-Price-Aggregator](https://github.com/XRPL-Labs/XRP-Price
 
 When running in jupyter notebooks, be sure to use `nested_async`
 
+[**Public Colab Example Notebook**](https://colab.research.google.com/drive/1OyV4P6dMFy3kBhV7FQNBW0lwHekkwAI6)
+
 ```py
 import nested_async
 import xrp_price_aggregate

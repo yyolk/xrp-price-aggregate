@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-def default_for_decimal(obj) -> str:
+def default_for_decimal(obj: Any) -> str:
     """handle Decimal, make a str"""
     if isinstance(obj, Decimal):
         return _format_decimal_result(obj)

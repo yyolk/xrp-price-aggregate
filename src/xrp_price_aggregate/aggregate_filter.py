@@ -52,7 +52,9 @@ async def _async_get_price(exchange, pair: str) -> Tuple[str, Decimal]:
     )
 
 
-async def _cycle_tasks(tasks_fn, count=5, delay=1) -> List[Tuple[str, Decimal]]:
+async def _cycle_tasks(
+    tasks_fn: Callable[[], List[Awaitable[Tuple[str, Decimal]]]], count: int, delay: int
+) -> List[Tuple[str, Decimal]]:
     """
     Calls a bunch of tasks from tasks_fn concurrently, then will delay the
     specified seconds before gathering tasks_fn concurrently again, repeat for

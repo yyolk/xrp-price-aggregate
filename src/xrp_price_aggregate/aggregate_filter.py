@@ -4,7 +4,7 @@ import logging
 import statistics
 
 from decimal import Decimal
-from typing import Any, Awaitable, Callable, Dict, List, Tuple
+from typing import Any, Awaitable, Callable, Dict, List, Set, Tuple
 
 from .providers import ExchangeClient, generate_default
 
@@ -52,32 +52,6 @@ async def _async_get_price(exchange: ExchangeClient, pair: str) -> Tuple[str, De
     )
 
 
-async def _cycle_tasks_fn(
-    tasks_fn: Callable[[], List[Awaitable[Tuple[str, Decimal]]]], count: int, delay: int
-) -> List[Tuple[str, Decimal]]:
-    """
-    Calls a bunch of tasks from tasks_fn concurrently, then will delay the
-    specified seconds before gathering tasks_fn concurrently again, repeat for
-    the provided count.
-
-    Args:
-        tasks_fn (Callable): The function, when called will generate new work
-        count (int): How many times to request from all providers
-        delay (int): How long to wait after finishing all provider requests
-                     before repeating
-
-    Returns:
-        List of Tuple[str, Decimal]: The results from the cycling
-    """
-    all_results = []
-    for _ in range(count):
-        all_results += await asyncio.gather(*tasks_fn())
-        # don't delay when calling once
-        if count != 1:
-            await asyncio.sleep(delay)
-    return all_results
-
-
 async def _aggregate_multiple(count=1, delay=1) -> Dict[str, Any]:
     """Handles the aggregate workflow
 
@@ -93,12 +67,19 @@ async def _aggregate_multiple(count=1, delay=1) -> Dict[str, Any]:
     Returns:
         Dict of [str, Any]: The aggregate results
     """
+    exchanges: Set[ExchangeClient]
+    exchange_with_tickers: List[Tuple[ExchangeClient, str]]
     exchanges, exchange_with_tickers = await generate_default()
     tasks_fn: Callable[[], List[Awaitable[Tuple[str, Decimal]]]] = lambda: [
         _async_get_price(exchange, ticker) for exchange, ticker in exchange_with_tickers
     ]
     try:
-        all_results = await _cycle_tasks_fn(tasks_fn, count, delay)
+        all_results = []
+        for _ in range(count):
+            all_results += await asyncio.gather(*tasks_fn())
+            # don't delay when calling once
+            if count != 1:
+                await asyncio.sleep(delay)
 
         raw_results = [raw_result for _, raw_result in all_results]
         # set up our container for named results

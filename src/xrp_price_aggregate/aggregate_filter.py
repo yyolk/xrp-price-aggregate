@@ -86,7 +86,7 @@ async def _aggregate_multiple(count=1, delay=1) -> Dict[str, Any]:
     """
     exchanges, exchange_with_tickers = await generate_default()
     tasks_fn: Callable[[], List[Awaitable[Tuple[str, Decimal]]]] = lambda: [
-        _async_get_price(*exchange) for exchange in exchange_with_tickers
+        _async_get_price(exchange, ticker) for exchange, ticker in exchange_with_tickers
     ]
     try:
         all_results = await _cycle_tasks_fn(tasks_fn, count, delay)

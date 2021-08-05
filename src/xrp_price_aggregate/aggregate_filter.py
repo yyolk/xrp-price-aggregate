@@ -52,7 +52,7 @@ async def _async_get_price(exchange: ExchangeClient, pair: str) -> Tuple[str, De
     )
 
 
-async def _aggregate_multiple(count=1, delay=1) -> Dict[str, Any]:
+async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
     """Handles the aggregate workflow
 
     Handles the aggregate workflow, given a count and delay for cycling through

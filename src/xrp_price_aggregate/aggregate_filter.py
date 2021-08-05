@@ -6,7 +6,7 @@ import statistics
 from decimal import Decimal
 from typing import Any, Awaitable, Callable, Dict, List, Tuple
 
-from .providers import generate_default
+from .providers import ExchangeClient, generate_default
 
 
 logger = logging.getLogger(__name__)
@@ -31,11 +31,11 @@ def _format_decimal_results(results: List[Decimal]) -> List[str]:
     return [_format_decimal_result(r) for r in results]
 
 
-async def _async_get_price(exchange, pair: str) -> Tuple[str, Decimal]:
+async def _async_get_price(exchange: ExchangeClient, pair: str) -> Tuple[str, Decimal]:
     """Utility function for grabbing the price from an exchange
 
     Args:
-        exchange: A ccxt-like client
+        exchange (ExchangeClient): A ccxt-like client
         pair (str): A pair like XRP/USD XRPUSD
 
     Returns:

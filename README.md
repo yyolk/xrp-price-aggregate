@@ -10,32 +10,33 @@ Based on [XRPL-Labs/XRP-Price-Aggregator](https://github.com/XRPL-Labs/XRP-Price
 2. Run directly as a module or import and provide aggregation count (how many
    rounds) along with delay between each round.
 
-        # run xrp_price_aggregate.__main__ and also beautify the results
-        python -m xrp_price_aggregate | python -m json.tool
-        {
-            "raw_results_named": {
-                "hitbtc": [
-                    "0.72235"
-                ],
-                ...
-            },
-            "raw_results": [
-                "0.72110",
-                "0.72236",
-                "0.72202",
-                ...
-            ],
-            "raw_median": "0.72219",
-            "raw_stdev": "0.00071",
-            "filtered_results": [
-                "0.72236",
-                "0.72202",
-                "0.72240",
-                ...
-            ],
-            "filtered_median": "0.72236",
-            "filtered_mean": "0.72219"
-        }
+
+       # run xrp_price_aggregate.__main__ and also beautify the results
+       python -m xrp_price_aggregate | python -m json.tool
+       {
+           "raw_results_named": {
+               "hitbtc": [
+                   "0.72235"
+               ],
+               ...
+           },
+           "raw_results": [
+               "0.72110",
+               "0.72236",
+               "0.72202",
+               ...
+           ],
+           "raw_median": "0.72219",
+           "raw_stdev": "0.00071",
+           "filtered_results": [
+               "0.72236",
+               "0.72202",
+               "0.72240",
+               ...
+           ],
+           "filtered_median": "0.72236",
+           "filtered_mean": "0.72219"
+       }
 
 
 

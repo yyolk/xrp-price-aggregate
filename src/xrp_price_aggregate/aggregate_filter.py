@@ -10,13 +10,14 @@ from .providers import generate_default
 
 
 logger = logging.getLogger(__name__)
+# https://docs.python.org/3/howto/logging.html#configuring-logging-for-a-library
 logger.addHandler(logging.NullHandler())
 
 
 def default_for_decimal(obj) -> str:
     """handle Decimal, make a str"""
     if isinstance(obj, Decimal):
-        return str(obj)
+        return _format_decimal_result(obj)
     raise TypeError
 
 
@@ -41,14 +42,14 @@ async def async_get_price(exchange, pair: str) -> Tuple[str, Decimal]:
     )
 
 
-def _format_result(result: Decimal) -> str:
+def _format_decimal_result(result: Decimal) -> str:
     """When displaying a result, format to 5 significant digits"""
     return f"{result:.5f}"
 
 
-def _format_results(results: List[Decimal]) -> List[str]:
+def _format_decimal_results(results: List[Decimal]) -> List[str]:
     """Handles formatting multiple results"""
-    return [_format_result(r) for r in results]
+    return [_format_decimal_result(r) for r in results]
 
 
 async def _cycle_tasks(tasks_fn, count=5, delay=1) -> List[Tuple[str, Decimal]]:
@@ -119,9 +120,9 @@ async def _aggregate_multiple(count=1, delay=1) -> Dict[str, Any]:
         filtered_median = statistics.median(filtered_results)
         filtered_mean = statistics.mean(filtered_results)
         filtered = {
-            "filtered_results": _format_results(filtered_results),
-            "filtered_median": _format_result(filtered_median),
-            "filtered_mean": _format_result(filtered_mean),
+            "filtered_results": filtered_results,
+            "filtered_median": filtered_median,
+            "filtered_mean": filtered_mean,
         }
         logging.debug("filtered is %s", filtered)
 
@@ -132,10 +133,11 @@ async def _aggregate_multiple(count=1, delay=1) -> Dict[str, Any]:
     finally:
         # we have no return, this is run "on the way out"
         close_exchanges_tasks = [exchange.close() for exchange in exchanges]
+        # shield in case we are timed out, so the clients are closed
         await asyncio.shield(asyncio.gather(*close_exchanges_tasks))
 
 
-def _compute_timeout(count, delay) -> int:
+def _compute_timeout(count: int, delay: int) -> int:
     """dumb logic for a max timeout, this could be better
 
     dumb logic for a max timeout, this could be better
@@ -145,7 +147,7 @@ def _compute_timeout(count, delay) -> int:
     do all concurrent requests in the workflow's (see ``tasks_fn``)
 
     """
-    max_tasks_fn_timeout = 10
+    max_tasks_fn_timeout = 15
     return (count * max_tasks_fn_timeout) + (delay * count)
 
 

@@ -51,3 +51,17 @@ Based on [XRPL-Labs/XRP-Price-Aggregator](https://github.com/XRPL-Labs/XRP-Price
     {'raw_results_named': {'hitbtc': [Decimal('0.720423')], 'kraken': [Decimal('0.72032')], 'bitrue': [Decimal('0.72003')], 'bitfinex': [Decimal('0.71992')], 'ftx': [Decimal('0.71995'), Decimal('0.7202')], 'cex': [Decimal('0.71961'), Decimal('0.71869')], 'bitstamp': [Decimal('0.71994')], 'binance': [Decimal('0.7203')]}, 'raw_results': [Decimal('0.7203'), Decimal('0.71992'), Decimal('0.71994'), Decimal('0.71961'), Decimal('0.71869'), Decimal('0.71995'), Decimal('0.7202'), Decimal('0.720423'), Decimal('0.72032'), Decimal('0.72003')], 'raw_median': Decimal('0.71999'), 'raw_stdev': Decimal('0.0005005397198136338821186646099'), 'filtered_results': ['0.72030', '0.71992', '0.71994', '0.71961', '0.71995', '0.72020', '0.72042', '0.72032', '0.72003'], 'filtered_median': '0.72003', 'filtered_mean': '0.72008'}
     ```
 
+# Note on Jupyter
+
+When running in jupyter notebooks, be sure to use `nested_async`
+
+```py
+import nested_async
+import xrp_price_aggregate
+
+
+nested_async.apply()
+
+
+agg_results = xrp_price_aggregate.as_dict(count=6, delay=3)
+```

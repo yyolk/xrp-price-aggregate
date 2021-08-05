@@ -59,6 +59,15 @@ async def _cycle_tasks_fn(
     Calls a bunch of tasks from tasks_fn concurrently, then will delay the
     specified seconds before gathering tasks_fn concurrently again, repeat for
     the provided count.
+
+    Args:
+        tasks_fn (Callable): The function, when called will generate new work
+        count (int): How many times to request from all providers
+        delay (int): How long to wait after finishing all provider requests
+                     before repeating
+
+    Returns:
+        List of Tuple[str, Decimal]: The results from the cycling
     """
     all_results = []
     for _ in range(count):

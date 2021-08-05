@@ -3,7 +3,7 @@ from typing import Any, Dict, Union
 
 import httpx
 
-from ccxt.base.exchange import Exchange  # type: ignore
+from ccxt.base import exchange  # type: ignore
 
 
 class FakeCCXT(ABC):
@@ -19,20 +19,31 @@ class FakeCCXT(ABC):
         # having an httpx client seems useful on the base class
         self.client = httpx.AsyncClient()
 
-    @abstractproperty
-    def id(self) -> str:
-        return "Unknown"
+    @property
+    @abstractmethod
+    def id(self) -> str:  # pylint: disable=invalid-name
+        """Returns the name of the exchange client
 
-    @abstractclassmethod
+        This should return the name of the exchange we're fronting to
+        conform to the ccxt-like client, it should also be lowered-case.
+        """
+        return "unknown"
+
+    @classmethod
+    @abstractmethod
     def price_to_precision(cls, symbol, value) -> str:
-        pass
+        """Returns the value scaled based on the symbol's precision
+
+        It's safe to return just the value if there is no mapping.
+        """
 
     @abstractmethod
     async def fetch_ticker(self, symbol) -> Dict[str, Any]:
-        pass
+        """Return the results as a ccxt-like client would"""
 
     async def close(self):
+        """Add any close logic here"""
         await self.client.aclose()
 
 
-ExchangeClient = Union[FakeCCXT, Exchange]
+ExchangeClient = Union[FakeCCXT, exchange.Exchange]

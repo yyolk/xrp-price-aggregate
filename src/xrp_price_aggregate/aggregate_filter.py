@@ -21,7 +21,17 @@ def default_for_decimal(obj) -> str:
     raise TypeError
 
 
-async def async_get_price(exchange, pair: str) -> Tuple[str, Decimal]:
+def _format_decimal_result(result: Decimal) -> str:
+    """When displaying a result, format to 5 significant digits"""
+    return f"{result:.5f}"
+
+
+def _format_decimal_results(results: List[Decimal]) -> List[str]:
+    """Handles formatting multiple results"""
+    return [_format_decimal_result(r) for r in results]
+
+
+async def _async_get_price(exchange, pair: str) -> Tuple[str, Decimal]:
     """Utility function for grabbing the price from an exchange
 
     Args:
@@ -40,16 +50,6 @@ async def async_get_price(exchange, pair: str) -> Tuple[str, Decimal]:
             ticker.get("last"),
         )
     )
-
-
-def _format_decimal_result(result: Decimal) -> str:
-    """When displaying a result, format to 5 significant digits"""
-    return f"{result:.5f}"
-
-
-def _format_decimal_results(results: List[Decimal]) -> List[str]:
-    """Handles formatting multiple results"""
-    return [_format_decimal_result(r) for r in results]
 
 
 async def _cycle_tasks(tasks_fn, count=5, delay=1) -> List[Tuple[str, Decimal]]:
@@ -84,7 +84,7 @@ async def _aggregate_multiple(count=1, delay=1) -> Dict[str, Any]:
     """
     exchanges, exchange_with_tickers = await generate_default()
     tasks_fn: Callable[[], List[Awaitable[Tuple[str, Decimal]]]] = lambda: [
-        async_get_price(*exchange) for exchange in exchange_with_tickers
+        _async_get_price(*exchange) for exchange in exchange_with_tickers
     ]
     try:
         all_results = await _cycle_tasks(tasks_fn, count=count, delay=delay)

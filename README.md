@@ -14,24 +14,27 @@ Based on [XRPL-Labs/XRP-Price-Aggregator](https://github.com/XRPL-Labs/XRP-Price
         python -m xrp_price_aggregate | python -m json.tool
         {
             "raw_results_named": {
-                "bitstamp": [
-                    "0.71477"
+                "hitbtc": [
+                    "0.72235"
                 ],
                 ...
             },
             "raw_results": [
-                "0.7146",
+                "0.72110",
+                "0.72236",
+                "0.72202",
                 ...
             ],
-            "raw_median": "0.7146375",
-            "raw_stdev": "0.2259129230993412844271423067",
+            "raw_median": "0.72219",
+            "raw_stdev": "0.00071",
             "filtered_results": [
-                "0.71460",
-                "0.71567",
+                "0.72236",
+                "0.72202",
+                "0.72240",
                 ...
             ],
-            "filtered_median": "0.71468",
-            "filtered_mean": "0.71439"
+            "filtered_median": "0.72236",
+            "filtered_mean": "0.72219"
         }
 
 

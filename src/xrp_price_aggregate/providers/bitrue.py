@@ -8,6 +8,7 @@ class Bitrue(FakeCCXT):
     Bitrue has a public endpoint for fetching a price of a symbol.
     """
 
+    fast = True
     fetch_ticker_url = "https://www.bitrue.com/api/v1/ticker/price"
 
     @property

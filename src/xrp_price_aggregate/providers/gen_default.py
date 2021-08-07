@@ -99,8 +99,8 @@ def generate_fast() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, str
     """
     exchanges, exchange_with_tickers = generate_default()
     # set up our filter predicates
-    filter_pred_fast_exchange_client = lambda exchange_client: hasattr(
-        exchange_client, "fast"
+    filter_pred_fast_exchange_client = lambda exchange_client: (
+        hasattr(exchange_client, "fast") and exchange_client.fast == True
     )
     filter_pred_fast_exchange_with_ticker = (
         lambda exchange_ticker: filter_pred_fast_exchange_client(exchange_ticker[0])

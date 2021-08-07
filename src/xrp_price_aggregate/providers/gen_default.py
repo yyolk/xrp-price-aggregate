@@ -3,10 +3,13 @@ from typing import List, Set, Tuple
 import ccxt.async_support as ccxt  # type: ignore
 
 from .base import ExchangeClient
+from .binance import Binance
 from .bitrue import Bitrue
+from .kraken import Kraken
 
 
-async def generate_default() -> Tuple[
+# async def generate_default() -> Tuple[
+def generate_default() -> Tuple[
     Set[ExchangeClient], List[Tuple[ExchangeClient, str]]
 ]:
     # get these popular, high volume exchanges from ccxt directly
@@ -16,9 +19,11 @@ async def generate_default() -> Tuple[
     cex = ccxt.cex()
     ftx = ccxt.ftx()
     hitbtc = ccxt.hitbtc()
-    kraken = ccxt.kraken()
+    # kraken = ccxt.kraken()
     # use our ccxt-like clients
     bitrue = Bitrue()
+    binance2 = Binance()
+    kraken2 = Kraken()
     # combine them all into a set for reference and iterating later
     exchanges = {
         binance,
@@ -27,8 +32,10 @@ async def generate_default() -> Tuple[
         cex,
         ftx,
         hitbtc,
-        kraken,
+        # kraken,
         bitrue,
+        binance2,
+        kraken2,
     }
 
     # this could be more intelligently created, but this literal mapping is
@@ -42,7 +49,9 @@ async def generate_default() -> Tuple[
         (ftx, "XRP/USD"),
         (ftx, "XRP/USDT"),
         (hitbtc, "XRP/USDT"),
-        (kraken, "XRP/USD"),
+        # (kraken, "XRP/USD"),
         (bitrue, "XRPUSDT"),
+        (binance2, "XRPUSDT"),
+        (kraken2, "XRPUSD"),
     ]
     return exchanges, exchange_with_tickers

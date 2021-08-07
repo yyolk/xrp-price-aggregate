@@ -65,6 +65,27 @@ async def _async_get_price(exchange: ExchangeClient, pair: str) -> Tuple[str, De
     )
 
 
+async def _tasks_fn(
+    exchange: ExchangeClient, pair: str, count: int, delay: int
+) -> List[Tuple[str, Decimal]]:
+    """
+    The tasks are a chain like:
+
+       fetch() -> [delay() -> fetch() -> delay() ...for _ in count]
+
+    """
+    results: List[Tuple[str, Decimal]] = []
+    for _ in range(count):
+        price: Tuple[str, Decimal] = await _async_get_price(exchange, pair)
+        logger.debug("price is", price)
+        results += [price]
+        # don't delay when calling once
+        if count != 1:
+            await asyncio.sleep(delay)
+
+    return results
+
+
 async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
     """Handles the aggregate workflow
 
@@ -82,17 +103,19 @@ async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
     """
     exchanges: Set[ExchangeClient]
     exchange_with_pairs: List[Tuple[ExchangeClient, str]]
-    exchanges, exchange_with_pairs = await generate_default()
-    tasks_fn: Callable[[], List[Awaitable[Tuple[str, Decimal]]]] = lambda: list(
-        _async_get_price(exchange, pair) for exchange, pair in exchange_with_pairs
-    )
+    exchanges, exchange_with_pairs = generate_default()
+
+    raw: Dict[str, Any]
+    filtered: Dict[str, Any]
+    tasks: List[Awaitable[List[Tuple[str, Decimal]]]] = [
+        _tasks_fn(exchange, pair, count, delay)
+        for exchange, pair in exchange_with_pairs
+    ]
+
     try:
-        all_results: List[Tuple[str, Decimal]] = []
-        for _ in range(count):
-            all_results += await asyncio.gather(*tasks_fn())
-            # don't delay when calling once
-            if count != 1:
-                await asyncio.sleep(delay)
+        all_results: List[Tuple[str, Decimal]] = [
+            result for results in await asyncio.gather(*tasks) for result in results
+        ]
 
         # set up our containers for results
         raw_results: List[Decimal] = []
@@ -106,8 +129,8 @@ async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
 
         # 1. Calculate raw part of aggregate results
         # calculate standard deviation and median from all results
-        raw_stdev = statistics.stdev(raw_results)
-        raw_median = statistics.median(raw_results)
+        raw_stdev: Decimal = statistics.stdev(raw_results)
+        raw_median: Decimal = statistics.median(raw_results)
 
         # compile the raw part of the aggregate results
         raw = {

@@ -36,6 +36,8 @@ class Hitbtc(FakeCCXT):
             Dict of [str, str]: The results in a shape that includes our
                                 expected "last" key
         """
-        resp = await self.client.get(self.fetch_ticker_url_template.format(symbol=symbol))
+        resp = await self.client.get(
+            self.fetch_ticker_url_template.format(symbol=symbol)
+        )
         json_resp = resp.json()
         return {"last": json_resp.get("last")}

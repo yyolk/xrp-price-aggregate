@@ -41,6 +41,4 @@ class Bitstamp(FakeCCXT):
             self.fetch_ticker_template_url.format(symbol=symbol.lower())
         )
         json_resp = resp.json()
-        return {
-            "last": json_resp.get("last")
-        }
+        return {"last": json_resp.get("last")}

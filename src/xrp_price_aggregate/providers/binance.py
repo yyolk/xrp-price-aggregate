@@ -3,17 +3,17 @@ from typing import Any, Dict
 from .base import FakeCCXT
 
 
-class Bitrue(FakeCCXT):
+class Binance(FakeCCXT):
     """
-    Bitrue has a public endpoint for fetching a price of a symbol.
+    Binance has a public endpoint for fetching a price of a symbol.
     """
 
     fast = True
-    fetch_ticker_url = "https://www.bitrue.com/api/v1/ticker/price"
+    fetch_ticker_url = "https://api.binance.com/api/v3/ticker/price"
 
     @property
     def id(self) -> str:
-        return "bitrue"
+        return "binance"
 
     @classmethod
     def price_to_precision(cls, _, value: str) -> str:

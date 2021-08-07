@@ -10,24 +10,25 @@ import statistics
 
 from decimal import Decimal
 from typing import (
-    Any,
     Awaitable,
-    Callable,
     Dict,
     List,
     Set,
     Tuple,
+    Union,
 )
 
-from .providers import ExchangeClient, generate_default
+from .providers import ExchangeClient, generate_default, generate_fast
 
+
+AggregateResultValue = Union[Dict[str, List[Decimal]], Decimal, List[Decimal]]
 
 logger = logging.getLogger(__name__)
 # https://docs.python.org/3/howto/logging.html#configuring-logging-for-a-library
 logger.addHandler(logging.NullHandler())
 
 
-def default_for_decimal(obj: Any) -> str:
+def default_for_decimal(obj: Decimal) -> str:
     """handle Decimal, make a str"""
     if isinstance(obj, Decimal):
         return _format_decimal_result(obj)
@@ -65,49 +66,105 @@ async def _async_get_price(exchange: ExchangeClient, pair: str) -> Tuple[str, De
     )
 
 
-async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
+async def _tasks_fn(
+    exchange: ExchangeClient, pair: str, count: int, delay: float
+) -> List[Tuple[str, Decimal]]:
+    """
+    The tasks are a chain like:
+
+       fetch() -> [delay() -> fetch() -> delay() ...for _ in count]
+
+    """
+    results: List[Tuple[str, Decimal]] = []
+    for _ in range(count):
+        price: Tuple[str, Decimal] = await _async_get_price(exchange, pair)
+        logger.debug("price is", price)
+        results += [price]
+        # don't delay when calling once
+        if count != 1:
+            await asyncio.sleep(delay)
+
+    return results
+
+
+async def _aggregate_multiple(
+    count: int, delay: float, fast: bool
+) -> Dict[str, AggregateResultValue]:
     """Handles the aggregate workflow
 
     Handles the aggregate workflow, given a count and delay for cycling through
     our scoped tasks_fn, which uses the generated_default exchanges from this
     package for processing.
 
+    Tasks get chained through tasks_fn and are subsequently chained together
+    per exchange_client in the compiled `tasks`
+
+        [
+            [ Exchange fetch() -> delay() -> fetch() -> delay()...],
+            [ Exchange fetch() -> ...],
+            ...
+        ]
+
     Args:
         count (int): How many times to request from all providers
         delay (int): How long to wait after finishing all provider requests
                      before repeating
+        fast (bool): Use only fast clients, that may use optimized endpoints
+                     that only fetches price.
 
     Returns:
-        Dict of [str, Any]: The aggregate results
+        Dict[str, AggregateResultValue]: The aggregate results
     """
     exchanges: Set[ExchangeClient]
     exchange_with_pairs: List[Tuple[ExchangeClient, str]]
-    exchanges, exchange_with_pairs = await generate_default()
-    tasks_fn: Callable[[], List[Awaitable[Tuple[str, Decimal]]]] = lambda: list(
-        _async_get_price(exchange, pair) for exchange, pair in exchange_with_pairs
-    )
-    try:
-        all_results: List[Tuple[str, Decimal]] = []
-        for _ in range(count):
-            all_results += await asyncio.gather(*tasks_fn())
-            # don't delay when calling once
-            if count != 1:
-                await asyncio.sleep(delay)
+    exchanges, exchange_with_pairs = generate_fast() if fast else generate_default()
 
-        # set up our containers for results
-        raw_results: List[Decimal] = []
-        raw_results_named: Dict[str, List[Decimal]] = {
-            exchange.id: [] for exchange in exchanges
-        }
-        # fill our containers with named results
+    raw: Dict[str, AggregateResultValue]
+    filtered: Dict[str, AggregateResultValue]
+    tasks: List[Awaitable[List[Tuple[str, Decimal]]]] = [
+        # [
+        #     [ Exchange fetch() -> delay() -> fetch() -> delay()...],
+        #     [ Exchange fetch() -> ...],
+        #     ...
+        # ]
+        _tasks_fn(exchange, pair, count, delay)
+        for exchange, pair in exchange_with_pairs
+    ]
+    # set up our containers for results
+    raw_results: List[Decimal] = []
+    raw_results_named: Dict[str, List[Decimal]] = {
+        exchange.id: [] for exchange in exchanges
+    }
+
+    try:
+        all_results: List[Tuple[str, Decimal]] = [
+            # the gathered results are nested per client.
+            # we flatten it in this comprehension
+            # [
+            #     [ ("exchange1", result), ("exchange1", result) ]
+            #     [ ("exchange2", result) ]
+            #     ...
+            # ] ->
+            # [
+            #     ("exchange1", result),
+            #     ("exchange1", result),
+            #     ("exchange2", result),
+            #     ...
+            # ]
+            result
+            for results in await asyncio.gather(*tasks)
+            for result in results
+        ]
+
+        # fill our containers with {, named} results
         for exchange_name, raw_result in all_results:
             raw_results.append(raw_result)
             raw_results_named[exchange_name].append(raw_result)
 
         # 1. Calculate raw part of aggregate results
         # calculate standard deviation and median from all results
-        raw_stdev = statistics.stdev(raw_results)
-        raw_median = statistics.median(raw_results)
+        raw_stdev: Decimal = statistics.stdev(raw_results)
+        raw_median: Decimal = statistics.median(raw_results)
 
         # compile the raw part of the aggregate results
         raw = {
@@ -120,7 +177,7 @@ async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
 
         # 2. Calculate filtered part of the aggregate results
         # pull acceptable results from all the raw_results
-        filtered_results = list(
+        filtered_results: List[Decimal] = list(
             filter(
                 # produce an accetable result from the raw results
                 # compare result subtracted from the median
@@ -130,8 +187,8 @@ async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
             )
         )
         # calculate median and mean from our filtered results
-        filtered_median = statistics.median(filtered_results)
-        filtered_mean = statistics.mean(filtered_results)
+        filtered_median: Decimal = statistics.median(filtered_results)
+        filtered_mean: Decimal = statistics.mean(filtered_results)
 
         # compile the filtered part of the aggregate results
         filtered = {
@@ -153,7 +210,7 @@ async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
         await asyncio.shield(asyncio.gather(*close_exchanges_tasks))
 
 
-def _compute_timeout(count: int, delay: int) -> int:
+def _compute_timeout(count: int, delay: float) -> int:
     """Dumb logic for a max timeout, this could be better
 
     ``max_tasks_fn_timeout`` is the amount of seconds and is the anticipated
@@ -165,28 +222,82 @@ def _compute_timeout(count: int, delay: int) -> int:
     3 seconds of buffer (2 * 6) + 3.
     """
     max_tasks_fn_timeout = 15  # 15 seconds
-    return (count * max_tasks_fn_timeout) + (delay * count)
+    return int((count * max_tasks_fn_timeout) + (delay * count))
 
 
-async def as_awaitable_json(count=1, delay=1) -> str:
+async def as_awaitable_dict(
+    count: int = 1, delay: float = 1, fast: bool = False
+) -> Dict[str, AggregateResultValue]:
+    """Returns the raw aggregate without formatting or serialization
+
+
+    Args:
+        count (int): How many times to request from all providers
+        delay (int): How long to wait after finishing all provider requests
+                     before repeating
+        fast (bool): Use only fast clients, that may use optimized endpoints
+                     that only fetches price.
+
+    Returns:
+        Dict[str, AggregateResultValue]: The aggregate results
+    """
+    return await asyncio.wait_for(
+        _aggregate_multiple(count, delay, fast), timeout=_compute_timeout(count, delay)
+    )
+
+
+async def as_awaitable_json(
+    count: int = 1, delay: float = 1, fast: bool = False
+) -> str:
+    """Returns the aggregate as serialized JSON
+
+    Args:
+        count (int): How many times to request from all providers
+        delay (int): How long to wait after finishing all provider requests
+                     before repeating
+        fast (bool): Use only fast clients, that may use optimized endpoints
+                     that only fetches price.
+
+    Returns:
+        str: The aggregate results
+    """
     return json.dumps(
-        await asyncio.wait_for(
-            _aggregate_multiple(count, delay),
-            timeout=_compute_timeout(count, delay),
-        ),
+        await as_awaitable_dict(count, delay, fast),
         default=default_for_decimal,
     )
 
 
-async def as_awaitable_dict(count=1, delay=1) -> Dict[str, Any]:
-    return await asyncio.wait_for(
-        _aggregate_multiple(count, delay), timeout=_compute_timeout(count, delay)
-    )
+def as_json(count: int = 1, delay: float = 1, fast: bool = False) -> str:
+    """Returns the aggregate as serialized JSON
 
 
-def as_json(count=1, delay=1) -> str:
-    return asyncio.run(as_awaitable_json(count, delay))
+    Args:
+        count (int): How many times to request from all providers
+        delay (int): How long to wait after finishing all provider requests
+                     before repeating
+        fast (bool): Use only fast clients, that may use optimized endpoints
+                     that only fetches price.
+
+    Returns:
+        str: The aggregate results
+    """
+    return asyncio.run(as_awaitable_json(count, delay, fast))
 
 
-def as_dict(count=1, delay=1) -> Dict[str, Any]:
-    return asyncio.run(as_awaitable_dict(count, delay))
+def as_dict(
+    count: int = 1, delay: float = 1, fast: bool = False
+) -> Dict[str, AggregateResultValue]:
+    """Returns the raw aggregate without formatting or serialization
+
+
+    Args:
+        count (int): How many times to request from all providers
+        delay (int): How long to wait after finishing all provider requests
+                     before repeating
+        fast (bool): Use only fast clients, that may use optimized endpoints
+                     that only fetches price.
+
+    Returns:
+        Dict[str, AggregateResultValue]: The aggregate results
+    """
+    return asyncio.run(as_awaitable_dict(count, delay, fast))

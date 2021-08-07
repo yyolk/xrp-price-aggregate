@@ -3,17 +3,16 @@ from typing import Any, Dict
 from .base import FakeCCXT
 
 
-class Bitrue(FakeCCXT):
+class Kraken(FakeCCXT):
     """
-    Bitrue has a public endpoint for fetching a price of a symbol.
+    Kraken has a public endpoint for fetching a price of a symbol.
     """
 
-    fast = True
-    fetch_ticker_url = "https://www.bitrue.com/api/v1/ticker/price"
+    fetch_ticker_url = "https://api.kraken.com/0/public/Ticker"
 
     @property
     def id(self) -> str:
-        return "bitrue"
+        return "kraken"
 
     @classmethod
     def price_to_precision(cls, _, value: str) -> str:
@@ -28,16 +27,14 @@ class Bitrue(FakeCCXT):
 
 
         Args:
-            symbol (str): The symbol to request from the endpoint, like XRPUSDT
+            symbol (str): The symbol to request from the endpoint, like XRPUSD
 
         Returns:
             Dict of [str, str]: The results in a shape that includes our
                                 expected "last" key
         """
-        resp = await self.client.get(self.fetch_ticker_url, params={"symbol": symbol})
+        resp = await self.client.get(self.fetch_ticker_url, params={"pair": symbol})
         json_resp = resp.json()
-        return {
-            # default to 0 seems intelligent since it'll definitely be filtered
-            # out, but skew the raw, unfiltered results
-            "last": json_resp.get("price", "0")
-        }
+        result = json_resp.get("result")
+        price = result["XXRPZUSD"]["c"][0]
+        return {"last": price}

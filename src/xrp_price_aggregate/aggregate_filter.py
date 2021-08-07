@@ -92,6 +92,15 @@ async def _aggregate_multiple(count: int, delay: float, fast: bool) -> Dict[str,
     our scoped tasks_fn, which uses the generated_default exchanges from this
     package for processing.
 
+    Tasks get chained through tasks_fn and are subsequently chained together
+    per exchange_client in the compiled `tasks`
+
+        [
+            [ Exchange fetch() -> delay() -> fetch() -> delay()...],
+            [ Exchange fetch() -> ...],
+            ...
+        ]
+
     Args:
         count (int): How many times to request from all providers
         delay (int): How long to wait after finishing all provider requests
@@ -109,6 +118,11 @@ async def _aggregate_multiple(count: int, delay: float, fast: bool) -> Dict[str,
     raw: Dict[str, Any]
     filtered: Dict[str, Any]
     tasks: List[Awaitable[List[Tuple[str, Decimal]]]] = [
+        # [
+        #     [ Exchange fetch() -> delay() -> fetch() -> delay()...],
+        #     [ Exchange fetch() -> ...],
+        #     ...
+        # ]
         _tasks_fn(exchange, pair, count, delay)
         for exchange, pair in exchange_with_pairs
     ]
@@ -120,7 +134,19 @@ async def _aggregate_multiple(count: int, delay: float, fast: bool) -> Dict[str,
 
     try:
         all_results: List[Tuple[str, Decimal]] = [
-            # the gathered results are nested per client, we flatten it
+            # the gathered results are nested per client.
+            # we flatten it in this comprehension
+            # [
+            #     [ ("exchange1", result), ("exchange1", result) ]
+            #     [ ("exchange2", result) ]
+            #     ...
+            # ] ->
+            # [
+            #     ("exchange1", result),
+            #     ("exchange1", result),
+            #     ("exchange2", result),
+            #     ...
+            # ]
             result
             for results in await asyncio.gather(*tasks)
             for result in results

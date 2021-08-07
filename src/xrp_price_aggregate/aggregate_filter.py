@@ -114,6 +114,7 @@ async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
 
     try:
         all_results: List[Tuple[str, Decimal]] = [
+            # the gathered results are nested per client, we flatten it
             result for results in await asyncio.gather(*tasks) for result in results
         ]
 

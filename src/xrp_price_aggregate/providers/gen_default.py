@@ -19,7 +19,7 @@ def generate_default() -> Tuple[
     cex = ccxt.cex()
     ftx = ccxt.ftx()
     hitbtc = ccxt.hitbtc()
-    # kraken = ccxt.kraken()
+    kraken = ccxt.kraken()
     # use our ccxt-like clients
     bitrue = Bitrue()
     binance2 = Binance()

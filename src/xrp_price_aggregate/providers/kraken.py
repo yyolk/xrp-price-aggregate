@@ -1,4 +1,7 @@
-from typing import Any, Dict
+"""
+Kraken optimized price endpoint provider
+"""
+from typing import Dict
 
 from .base import FakeCCXT
 

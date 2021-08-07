@@ -1,3 +1,6 @@
+"""
+Provides base classes for use along with ccxt.base.exchange.Exchange clients
+"""
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Union
 
@@ -14,6 +17,9 @@ class FakeCCXT(ABC):
     Implementing a class from this ABC allows you to call any API capable of
     returning a price to be considered in the aggregate.
     """
+
+    # we should assume this client will be fast (use optimized endpoint)
+    fast = True
 
     def __init__(self):
         # having an httpx client seems useful on the base class

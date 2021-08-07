@@ -1,21 +1,21 @@
 """
-Kraken optimized price endpoint provider
+Bitstamp optimized price endpoint provider
 """
 from typing import Dict
 
 from .base import FakeCCXT
 
 
-class Kraken(FakeCCXT):
+class Bitstamp(FakeCCXT):
     """
-    Kraken has a public endpoint for fetching a price of a symbol.
+    Bitstamp has a public endpoint for fetching a price of a symbol.
     """
 
-    fetch_ticker_url = "https://api.kraken.com/0/public/Ticker"
+    fetch_ticker_template_url = "https://www.bitstamp.net/api/v2/ticker/{symbol}/"
 
     @property
     def id(self) -> str:
-        return "kraken"
+        return "bitstamp"
 
     @classmethod
     def price_to_precision(cls, _, value: str) -> str:
@@ -30,14 +30,15 @@ class Kraken(FakeCCXT):
 
 
         Args:
-            symbol (str): The symbol to request from the endpoint, like XRPUSD
+            symbol (str): The symbol to request from the endpoint, like xrpusd
 
         Returns:
             Dict of [str, str]: The results in a shape that includes our
                                 expected "last" key
         """
-        resp = await self.client.get(self.fetch_ticker_url, params={"pair": symbol})
+        resp = await self.client.get(
+            # Bitstamp's tickers are all lowercase /shrug
+            self.fetch_ticker_template_url.format(symbol=symbol.lower())
+        )
         json_resp = resp.json()
-        result = json_resp.get("result")
-        price = result["XXRPZUSD"]["c"][0]
-        return {"last": price}
+        return {"last": json_resp.get("last")}

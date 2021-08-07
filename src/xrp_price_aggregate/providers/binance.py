@@ -1,4 +1,7 @@
-from typing import Any, Dict
+"""
+Binance optimized price endpoint provider
+"""
+from typing import Dict
 
 from .base import FakeCCXT
 
@@ -8,7 +11,6 @@ class Binance(FakeCCXT):
     Binance has a public endpoint for fetching a price of a symbol.
     """
 
-    fast = True
     fetch_ticker_url = "https://api.binance.com/api/v3/ticker/price"
 
     @property

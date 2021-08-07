@@ -1,21 +1,21 @@
 """
-Kraken optimized price endpoint provider
+HitBTC optimized price endpoint provider
 """
 from typing import Dict
 
 from .base import FakeCCXT
 
 
-class Kraken(FakeCCXT):
+class Hitbtc(FakeCCXT):
     """
-    Kraken has a public endpoint for fetching a price of a symbol.
+    Hitbtc has a public endpoint for fetching a price of a symbol.
     """
 
-    fetch_ticker_url = "https://api.kraken.com/0/public/Ticker"
+    fetch_ticker_url_template = "https://api.hitbtc.com/api/2/public/ticker/{symbol}"
 
     @property
     def id(self) -> str:
-        return "kraken"
+        return "hitbtc"
 
     @classmethod
     def price_to_precision(cls, _, value: str) -> str:
@@ -36,8 +36,8 @@ class Kraken(FakeCCXT):
             Dict of [str, str]: The results in a shape that includes our
                                 expected "last" key
         """
-        resp = await self.client.get(self.fetch_ticker_url, params={"pair": symbol})
+        resp = await self.client.get(
+            self.fetch_ticker_url_template.format(symbol=symbol)
+        )
         json_resp = resp.json()
-        result = json_resp.get("result")
-        price = result["XXRPZUSD"]["c"][0]
-        return {"last": price}
+        return {"last": json_resp.get("last")}

@@ -12,14 +12,13 @@ from decimal import Decimal
 from typing import (
     Any,
     Awaitable,
-    Callable,
     Dict,
     List,
     Set,
     Tuple,
 )
 
-from .providers import ExchangeClient, generate_default
+from .providers import ExchangeClient, generate_default, generate_fast
 
 
 logger = logging.getLogger(__name__)
@@ -66,7 +65,7 @@ async def _async_get_price(exchange: ExchangeClient, pair: str) -> Tuple[str, De
 
 
 async def _tasks_fn(
-    exchange: ExchangeClient, pair: str, count: int, delay: int
+    exchange: ExchangeClient, pair: str, count: int, delay: float
 ) -> List[Tuple[str, Decimal]]:
     """
     The tasks are a chain like:
@@ -86,7 +85,7 @@ async def _tasks_fn(
     return results
 
 
-async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
+async def _aggregate_multiple(count: int, delay: float, fast: bool) -> Dict[str, Any]:
     """Handles the aggregate workflow
 
     Handles the aggregate workflow, given a count and delay for cycling through
@@ -97,13 +96,15 @@ async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
         count (int): How many times to request from all providers
         delay (int): How long to wait after finishing all provider requests
                      before repeating
+        fast (bool): Use only fast clients, that may use optimized endpoints
+                     that only fetches price.
 
     Returns:
         Dict of [str, Any]: The aggregate results
     """
     exchanges: Set[ExchangeClient]
     exchange_with_pairs: List[Tuple[ExchangeClient, str]]
-    exchanges, exchange_with_pairs = generate_default()
+    exchanges, exchange_with_pairs = generate_fast() if fast else generate_default()
 
     raw: Dict[str, Any]
     filtered: Dict[str, Any]
@@ -111,19 +112,21 @@ async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
         _tasks_fn(exchange, pair, count, delay)
         for exchange, pair in exchange_with_pairs
     ]
+    # set up our containers for results
+    raw_results: List[Decimal] = []
+    raw_results_named: Dict[str, List[Decimal]] = {
+        exchange.id: [] for exchange in exchanges
+    }
 
     try:
         all_results: List[Tuple[str, Decimal]] = [
             # the gathered results are nested per client, we flatten it
-            result for results in await asyncio.gather(*tasks) for result in results
+            result
+            for results in await asyncio.gather(*tasks)
+            for result in results
         ]
 
-        # set up our containers for results
-        raw_results: List[Decimal] = []
-        raw_results_named: Dict[str, List[Decimal]] = {
-            exchange.id: [] for exchange in exchanges
-        }
-        # fill our containers with named results
+        # fill our containers with {, named} results
         for exchange_name, raw_result in all_results:
             raw_results.append(raw_result)
             raw_results_named[exchange_name].append(raw_result)
@@ -144,7 +147,7 @@ async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
 
         # 2. Calculate filtered part of the aggregate results
         # pull acceptable results from all the raw_results
-        filtered_results = list(
+        filtered_results: List[Decimal] = list(
             filter(
                 # produce an accetable result from the raw results
                 # compare result subtracted from the median
@@ -154,8 +157,8 @@ async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
             )
         )
         # calculate median and mean from our filtered results
-        filtered_median = statistics.median(filtered_results)
-        filtered_mean = statistics.mean(filtered_results)
+        filtered_median: Decimal = statistics.median(filtered_results)
+        filtered_mean: Decimal = statistics.mean(filtered_results)
 
         # compile the filtered part of the aggregate results
         filtered = {
@@ -177,7 +180,7 @@ async def _aggregate_multiple(count: int, delay: int) -> Dict[str, Any]:
         await asyncio.shield(asyncio.gather(*close_exchanges_tasks))
 
 
-def _compute_timeout(count: int, delay: int) -> int:
+def _compute_timeout(count: int, delay: float) -> int:
     """Dumb logic for a max timeout, this could be better
 
     ``max_tasks_fn_timeout`` is the amount of seconds and is the anticipated
@@ -189,28 +192,32 @@ def _compute_timeout(count: int, delay: int) -> int:
     3 seconds of buffer (2 * 6) + 3.
     """
     max_tasks_fn_timeout = 15  # 15 seconds
-    return (count * max_tasks_fn_timeout) + (delay * count)
+    return int((count * max_tasks_fn_timeout) + (delay * count))
 
 
-async def as_awaitable_json(count=1, delay=1) -> str:
+async def as_awaitable_json(
+    count: int = 1, delay: float = 1, fast: bool = False
+) -> str:
     return json.dumps(
         await asyncio.wait_for(
-            _aggregate_multiple(count, delay),
+            _aggregate_multiple(count, delay, fast),
             timeout=_compute_timeout(count, delay),
         ),
         default=default_for_decimal,
     )
 
 
-async def as_awaitable_dict(count=1, delay=1) -> Dict[str, Any]:
+async def as_awaitable_dict(
+    count: int = 1, delay: float = 1, fast: bool = False
+) -> Dict[str, Any]:
     return await asyncio.wait_for(
-        _aggregate_multiple(count, delay), timeout=_compute_timeout(count, delay)
+        _aggregate_multiple(count, delay, fast), timeout=_compute_timeout(count, delay)
     )
 
 
-def as_json(count=1, delay=1) -> str:
-    return asyncio.run(as_awaitable_json(count, delay))
+def as_json(count: int = 1, delay: float = 1, fast: bool = False) -> str:
+    return asyncio.run(as_awaitable_json(count, delay, fast))
 
 
-def as_dict(count=1, delay=1) -> Dict[str, Any]:
-    return asyncio.run(as_awaitable_dict(count, delay))
+def as_dict(count: int = 1, delay: float = 1, fast: bool = False) -> Dict[str, Any]:
+    return asyncio.run(as_awaitable_dict(count, delay, fast))

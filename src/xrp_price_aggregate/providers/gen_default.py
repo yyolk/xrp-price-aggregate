@@ -15,6 +15,8 @@ def generate_default() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, 
     bitstamp = ccxt.bitstamp()
     cex = ccxt.cex()
     ftx = ccxt.ftx()
+    # example where we could set a ccxt client as 'fast' directly, not really
+    # intelligent, just empirical
     # setattr(ftx, "fast", True)
     hitbtc = ccxt.hitbtc()
     kraken = ccxt.kraken()

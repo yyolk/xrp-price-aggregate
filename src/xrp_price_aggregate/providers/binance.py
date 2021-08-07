@@ -41,4 +41,3 @@ class Binance(FakeCCXT):
             # out, but skew the raw, unfiltered results
             "last": json_resp.get("price", "0")
         }
-

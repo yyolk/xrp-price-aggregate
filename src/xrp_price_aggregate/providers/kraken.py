@@ -37,7 +37,4 @@ class Kraken(FakeCCXT):
         json_resp = resp.json()
         result = json_resp.get("result")
         price = result["XXRPZUSD"]["c"][0]
-        return {
-            "last": price
-        }
-
+        return {"last": price}

@@ -78,7 +78,7 @@ async def _tasks_fn(
     results: List[Tuple[str, Decimal]] = []
     for _ in range(count):
         price: Tuple[str, Decimal] = await _async_get_price(exchange, pair)
-        logger.debug("price is", price)
+        logger.debug("price is %s", price)
         results += [price]
         # don't delay when calling once
         if count != 1:

@@ -8,6 +8,7 @@ from .bitstamp import Bitstamp
 from .bitrue import Bitrue
 from .hitbtc import Hitbtc
 from .kraken import Kraken
+from .xrpl_oracle import XRPLOracle
 
 
 def generate_default() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, str]]]:
@@ -54,6 +55,7 @@ def generate_default() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, 
     binance2 = Binance()
     kraken2 = Kraken()
     hitbtc2 = Hitbtc()
+    xrpl_oracle = XRPLOracle()
     # combine them all into a set for reference and iterating later
     exchanges = {
         binance,
@@ -68,6 +70,7 @@ def generate_default() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, 
         bitrue,
         binance2,
         kraken2,
+        xrpl_oracle,
     }
 
     # this could be more intelligently created, but this literal mapping is
@@ -88,6 +91,7 @@ def generate_default() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, 
         (bitrue, "XRPUSDT"),
         (binance2, "XRPUSDT"),
         (kraken2, "XRPUSD"),
+        (xrpl_oracle, "USD"),
     ]
     return exchanges, exchange_with_tickers
 

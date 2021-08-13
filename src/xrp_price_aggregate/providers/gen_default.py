@@ -1,4 +1,4 @@
-from typing import List, Set, Tuple
+from typing import Callable, List, Set, Tuple
 
 import ccxt.async_support as ccxt  # type: ignore
 
@@ -99,12 +99,14 @@ def generate_fast() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, str
     """
     exchanges, exchange_with_tickers = generate_default()
     # set up our filter predicates
-    filter_pred_fast_exchange_client = lambda exchange_client: (
+    filter_pred_fast_exchange_client: Callable[
+        [ExchangeClient], bool
+    ] = lambda exchange_client: (
         hasattr(exchange_client, "fast") and exchange_client.fast == True
     )
-    filter_pred_fast_exchange_with_ticker = (
-        lambda exchange_ticker: filter_pred_fast_exchange_client(exchange_ticker[0])
-    )
+    filter_pred_fast_exchange_with_ticker: Callable[
+        [Tuple[ExchangeClient, str]], bool
+    ] = lambda exchange_ticker: filter_pred_fast_exchange_client(exchange_ticker[0])
     filtered_exchanges = set(filter(filter_pred_fast_exchange_client, exchanges))
     filtered_exchange_with_tickers = list(
         filter(filter_pred_fast_exchange_with_ticker, exchange_with_tickers)

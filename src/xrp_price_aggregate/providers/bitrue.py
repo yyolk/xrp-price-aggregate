@@ -18,7 +18,7 @@ class Bitrue(FakeCCXT):
         return "bitrue"
 
     @classmethod
-    def price_to_precision(cls, _, value: str) -> str:
+    def price_to_precision(cls, _: str, value: str) -> str:
         """We have no intelligence for precision in this client"""
         return value
 

@@ -1,8 +1,9 @@
 """
 Provides base classes for use along with ccxt.base.exchange.Exchange clients
 """
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Union
+from typing import Any, Dict, Type, Union
 
 import httpx
 
@@ -21,7 +22,7 @@ class FakeCCXT(ABC):
     # we should assume this client will be fast (use optimized endpoint)
     fast = True
 
-    def __init__(self):
+    def __init__(self) -> None:
         # having an httpx client seems useful on the base class
         self.client = httpx.AsyncClient()
 
@@ -37,17 +38,17 @@ class FakeCCXT(ABC):
 
     @classmethod
     @abstractmethod
-    def price_to_precision(cls, symbol, value) -> str:
+    def price_to_precision(cls: Type[FakeCCXT], symbol: str, value: str) -> str:
         """Returns the value scaled based on the symbol's precision
 
         It's safe to return just the value if there is no mapping.
         """
 
     @abstractmethod
-    async def fetch_ticker(self, symbol) -> Dict[str, Any]:
+    async def fetch_ticker(self, symbol: str) -> Dict[str, Any]:
         """Return the results as a ccxt-like client would"""
 
-    async def close(self):
+    async def close(self) -> None:
         """Add any close logic here"""
         await self.client.aclose()
 

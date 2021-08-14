@@ -20,7 +20,6 @@ class XRPLOracle(FakeCCXT):
 
     # assume mainnet
     fetch_ticker_url = "https://xrplcluster.com"
-    # we might want other ways of reading this data
     xrpl_oracle = True
 
     @property
@@ -66,5 +65,7 @@ class XRPLOracle(FakeCCXT):
                     for trust_line in filter(lambda tl: tl["currency"] == symbol, trust_lines)
                 )
             else:
+                # retry every 50 ms, this can be be more intelligent with
+                # backoff and jitter
                 await asyncio.sleep(0.05)
         return {"last": str(average)}

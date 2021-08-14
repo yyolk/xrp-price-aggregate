@@ -60,6 +60,9 @@ class XRPLOracle(FakeCCXT):
                 successful = True
                 json_resp = resp.json()
                 trust_lines = json_resp["result"]["lines"]
+                # take the mean of all the limit_peer amounts if that amount is
+                # in the currency we're interested in from all the trust_lines
+                # for this oracle account
                 average = statistics.mean(
                     Decimal(trust_line["limit_peer"])
                     for trust_line in filter(lambda tl: tl["currency"] == symbol, trust_lines)

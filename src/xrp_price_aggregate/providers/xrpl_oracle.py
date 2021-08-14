@@ -1,6 +1,7 @@
 """
 This will call the XRPL oracle to grab the price
 """
+import asyncio
 import statistics
 from decimal import Decimal
 from typing import Dict
@@ -8,16 +9,19 @@ from typing import Dict
 from .base import FakeCCXT
 
 
+# see gravatar to understand ;)
 XRPL_ORACLE__UNICORN_CAT = "r9PfV3sQpKLWxccdg3HL2FXKxGW2orAcLE"
 
 
 class XRPLOracle(FakeCCXT):
     """
-    Bitstamp has a public endpoint for fetching a price of a symbol.
+    Look up data that was persisted to the XRPL via the XRPL Oracles.
     """
 
     # assume mainnet
     fetch_ticker_url = "https://xrplcluster.com"
+    # we might want other ways of reading this data
+    xrpl_oracle = True
 
     @property
     def id(self) -> str:
@@ -42,18 +46,25 @@ class XRPLOracle(FakeCCXT):
             Dict of [str, str]: The results in a shape that includes our
                                 expected "last" key
         """
-
-        resp = await self.client.post(
-            self.fetch_ticker_url,
-            json={
-                "method": "account_lines",
-                "params": [{"account": XRPL_ORACLE__UNICORN_CAT}],
-            },
-        )
-        json_resp = resp.json()
-        trust_lines = json_resp["result"]["lines"]
-        average = statistics.mean(
-            Decimal(trust_line["limit_peer"])
-            for trust_line in filter(lambda tl: tl["currency"] == symbol, trust_lines)
-        )
+        successful = False
+        # optimistically, the XRPL is always up and reachable, we may need to
+        # add better logic for selecting more than one endpoint
+        while not successful:
+            resp = await self.client.post(
+                self.fetch_ticker_url,
+                json={
+                    "method": "account_lines",
+                    "params": [{"account": XRPL_ORACLE__UNICORN_CAT}],
+                },
+            )
+            if resp.status_code == 200:
+                successful = True
+                json_resp = resp.json()
+                trust_lines = json_resp["result"]["lines"]
+                average = statistics.mean(
+                    Decimal(trust_line["limit_peer"])
+                    for trust_line in filter(lambda tl: tl["currency"] == symbol, trust_lines)
+                )
+            else:
+                await asyncio.sleep(0.05)
         return {"last": str(average)}

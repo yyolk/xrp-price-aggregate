@@ -2,13 +2,12 @@
 
 Based on [XRPL-Labs/XRP-Price-Aggregator](https://github.com/XRPL-Labs/XRP-Price-Aggregator)
 
-![PyPI](https://img.shields.io/pypi/v/xrp-price-aggregate)
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/xrp-price-aggregate)
-![PyPI - Wheel](https://img.shields.io/pypi/wheel/xrp-price-aggregate)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/xrp-price-aggregate)
-![PyPI - Implementation](https://img.shields.io/pypi/implementation/xrp-price-aggregate)
-![PyPI - License](https://img.shields.io/pypi/l/xrp-price-aggregate)
-
+[![PyPI](https://img.shields.io/pypi/v/xrp-price-aggregate)][pypi]
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/xrp-price-aggregate)][pypi]
+[![PyPI - Wheel](https://img.shields.io/pypi/wheel/xrp-price-aggregate)][pypi]
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/xrp-price-aggregate)][pypi]
+[![PyPI - Implementation](https://img.shields.io/pypi/implementation/xrp-price-aggregate)][pypi]
+[![PyPI - License](https://img.shields.io/pypi/l/xrp-price-aggregate)][pypi]
 
 
 # Usage
@@ -85,3 +84,5 @@ agg_results = xrp_price_aggregate.as_dict(count=6, delay=3)
 [**Public Colab Example Notebook**](https://colab.research.google.com/drive/1OyV4P6dMFy3kBhV7FQNBW0lwHekkwAI6),
 backup of the `.ipynb` [as a Gist](https://gist.github.com/yyolk/c293b66cea913c5b6dc3939a7f38b8bd)
 
+
+[pypi]: https://pypi.org/project/xrp-price-aggregate/ "xrp-price-aggregate - PyPi"

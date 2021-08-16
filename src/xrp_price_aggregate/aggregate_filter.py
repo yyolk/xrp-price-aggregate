@@ -18,7 +18,7 @@ from typing import (
     Union,
 )
 
-from .providers import ExchangeClient, generate_default, generate_fast
+from .providers import ExchangeClient, generate_default, generate_fast, generate_oracle
 
 
 AggregateResultValue = Union[Dict[str, List[Decimal]], Decimal, List[Decimal]]
@@ -88,7 +88,7 @@ async def _tasks_fn(
 
 
 async def _aggregate_multiple(
-    count: int, delay: float, fast: bool
+    count: int, delay: float, fast: bool, oracle: bool
 ) -> Dict[str, AggregateResultValue]:
     """Handles the aggregate workflow
 
@@ -117,7 +117,13 @@ async def _aggregate_multiple(
     """
     exchanges: Set[ExchangeClient]
     exchange_with_pairs: List[Tuple[ExchangeClient, str]]
-    exchanges, exchange_with_pairs = generate_fast() if fast else generate_default()
+    exchanges, exchange_with_pairs = (
+        generate_fast()
+        if fast and not oracle
+        else generate_oracle()
+        if oracle and not fast
+        else generate_default()
+    )
 
     raw: Dict[str, AggregateResultValue]
     filtered: Dict[str, AggregateResultValue]
@@ -226,7 +232,7 @@ def _compute_timeout(count: int, delay: float) -> int:
 
 
 async def as_awaitable_dict(
-    count: int = 1, delay: float = 1, fast: bool = False
+    count: int = 1, delay: float = 1, fast: bool = False, oracle: bool = False
 ) -> Dict[str, AggregateResultValue]:
     """Returns the raw aggregate without formatting or serialization
 
@@ -242,12 +248,13 @@ async def as_awaitable_dict(
         Dict[str, AggregateResultValue]: The aggregate results
     """
     return await asyncio.wait_for(
-        _aggregate_multiple(count, delay, fast), timeout=_compute_timeout(count, delay)
+        _aggregate_multiple(count, delay, fast, oracle),
+        timeout=_compute_timeout(count, delay),
     )
 
 
 async def as_awaitable_json(
-    count: int = 1, delay: float = 1, fast: bool = False
+    count: int = 1, delay: float = 1, fast: bool = False, oracle: bool = False
 ) -> str:
     """Returns the aggregate as serialized JSON
 
@@ -262,12 +269,14 @@ async def as_awaitable_json(
         str: The aggregate results
     """
     return json.dumps(
-        await as_awaitable_dict(count, delay, fast),
+        await as_awaitable_dict(count, delay, fast, oracle),
         default=default_for_decimal,
     )
 
 
-def as_json(count: int = 1, delay: float = 1, fast: bool = False) -> str:
+def as_json(
+    count: int = 1, delay: float = 1, fast: bool = False, oracle: bool = False
+) -> str:
     """Returns the aggregate as serialized JSON
 
 
@@ -281,11 +290,11 @@ def as_json(count: int = 1, delay: float = 1, fast: bool = False) -> str:
     Returns:
         str: The aggregate results
     """
-    return asyncio.run(as_awaitable_json(count, delay, fast))
+    return asyncio.run(as_awaitable_json(count, delay, fast, oracle))
 
 
 def as_dict(
-    count: int = 1, delay: float = 1, fast: bool = False
+    count: int = 1, delay: float = 1, fast: bool = False, oracle: bool = False
 ) -> Dict[str, AggregateResultValue]:
     """Returns the raw aggregate without formatting or serialization
 
@@ -300,4 +309,4 @@ def as_dict(
     Returns:
         Dict[str, AggregateResultValue]: The aggregate results
     """
-    return asyncio.run(as_awaitable_dict(count, delay, fast))
+    return asyncio.run(as_awaitable_dict(count, delay, fast, oracle))

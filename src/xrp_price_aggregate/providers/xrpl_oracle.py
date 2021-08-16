@@ -68,7 +68,9 @@ class XRPLOracle(FakeCCXT):
                 # for this oracle account
                 average = statistics.mean(
                     Decimal(trust_line["limit_peer"])
-                    for trust_line in filter(lambda tl: tl["currency"] == symbol, trust_lines)
+                    for trust_line in filter(
+                        lambda tl: tl["currency"] == symbol, trust_lines
+                    )
                 )
             else:
                 # retry every 50 ms, this can be be more intelligent with

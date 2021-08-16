@@ -18,6 +18,9 @@ class XRPLOracle(FakeCCXT):
     Look up data that was persisted to the XRPL via the XRPL Oracles.
     """
 
+    # although the retrieval is generally considered 'fast', the frequency of
+    # updates isn't (1/min)
+    fast = False
     # assume mainnet
     fetch_ticker_url = "https://xrplcluster.com"
     xrpl_oracle = True
@@ -65,7 +68,9 @@ class XRPLOracle(FakeCCXT):
                 # for this oracle account
                 average = statistics.mean(
                     Decimal(trust_line["limit_peer"])
-                    for trust_line in filter(lambda tl: tl["currency"] == symbol, trust_lines)
+                    for trust_line in filter(
+                        lambda tl: tl["currency"] == symbol, trust_lines
+                    )
                 )
             else:
                 # retry every 50 ms, this can be be more intelligent with

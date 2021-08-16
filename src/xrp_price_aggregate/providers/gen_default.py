@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Callable, List, Set, Tuple
 
 import ccxt.async_support as ccxt  # type: ignore
@@ -8,6 +9,7 @@ from .bitstamp import Bitstamp
 from .bitrue import Bitrue
 from .hitbtc import Hitbtc
 from .kraken import Kraken
+from .threexrp import ThreeXRP
 from .xrpl_oracle import XRPLOracle
 
 
@@ -55,6 +57,7 @@ def generate_default() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, 
     binance2 = Binance()
     kraken2 = Kraken()
     hitbtc2 = Hitbtc()
+    threexrp = ThreeXRP()
     xrpl_oracle = XRPLOracle()
     # combine them all into a set for reference and iterating later
     exchanges = {
@@ -70,6 +73,7 @@ def generate_default() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, 
         bitrue,
         binance2,
         kraken2,
+        threexrp,
         xrpl_oracle,
     }
 
@@ -91,41 +95,24 @@ def generate_default() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, 
         (bitrue, "XRPUSDT"),
         (binance2, "XRPUSDT"),
         (kraken2, "XRPUSD"),
+        (threexrp, "USD"),
         (xrpl_oracle, "USD"),
     ]
     return exchanges, exchange_with_tickers
 
 
 def _filter_on_client_attr(attr: str) -> Callable[[ExchangeClient], bool]:
-    return lambda exchange_client: (
-        hasattr(exchange_client, attr) and getattr(exchange_client, attr) is True
-    )
+    return lambda exchange_client: getattr(exchange_client, attr, False) is True
 
 
-# def _filter_gen(exchange_client_fpred, exchange_with_ticker_fpred):
-#     exchanges, exchange_with_tickers = generate_default()
-#     filtered_exchanges = set(filter(exchange_client_fpred, exchanges))
-#     filtered_exchange_with_tickers = list(
-#         filter(exchange_with_ticker_fpred, exchange_with_tickers)
-#     )
-#
-#     ...
-
-
-def generate_fast() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, str]]]:
-    """
-    This will return the exchanges filtered from the default set if they have
-    a `fast` attribute.
-    """
+def _filter_gen(
+    exchange_client_fpred: Callable[[ExchangeClient], bool],
+    exchange_with_ticker_fpred: Callable[[Tuple[ExchangeClient, str]], bool],
+) -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, str]]]:
     exchanges, exchange_with_tickers = generate_default()
-    # set up our filter predicates
-    filter_pred_fast_exchange_client = _filter_on_client_attr("fast")
-    filter_pred_fast_exchange_with_ticker: Callable[
-        [Tuple[ExchangeClient, str]], bool
-    ] = lambda exchange_ticker: filter_pred_fast_exchange_client(exchange_ticker[0])
-    filtered_exchanges = set(filter(filter_pred_fast_exchange_client, exchanges))
+    filtered_exchanges = set(filter(exchange_client_fpred, exchanges))
     filtered_exchange_with_tickers = list(
-        filter(filter_pred_fast_exchange_with_ticker, exchange_with_tickers)
+        filter(exchange_with_ticker_fpred, exchange_with_tickers)
     )
     return filtered_exchanges, filtered_exchange_with_tickers
 
@@ -141,3 +128,21 @@ def generate_fast() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, str
 #     def __init__(self, exchange_client_fpred, exchange_with_ticker_fpred):
 #         self.exchange_client_fpred = exchange_client_fpred
 #         self.exchange_with_ticker_fpred = exchange_client_fpred
+
+filter_pred_fast_exchange_client = _filter_on_client_attr("fast")
+filter_pred_non_oracle_client: Callable[[Tuple[ExchangeClient, str]], bool] = (
+    lambda exchange_client: not getattr(exchange_client, "xrpl_oracle", False) is True
+)
+
+
+generate_fast = partial(
+    _filter_gen,
+    filter_pred_fast_exchange_client,
+    lambda exchange_ticker: filter_pred_fast_exchange_client(exchange_ticker[0]),
+)
+
+generate_oracle = partial(
+    _filter_gen,
+    filter_pred_non_oracle_client,
+    lambda exchange_ticker: filter_pred_non_oracle_client(exchange_ticker[0]),
+)

@@ -98,9 +98,7 @@ def generate_default() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, 
 
 
 def _filter_on_client_attr(attr: str) -> Callable[[ExchangeClient], bool]:
-    return lambda exchange_client: (
-        hasattr(exchange_client, attr) and getattr(exchange_client, attr) is True
-    )
+    return lambda exchange_client: getattr(exchange_client, attr, False) is True
 
 
 def _filter_gen(
@@ -128,11 +126,8 @@ def _filter_gen(
 #         self.exchange_with_ticker_fpred = exchange_client_fpred
 
 filter_pred_fast_exchange_client = _filter_on_client_attr("fast")
-filter_pred_non_oracle_client: Callable[
-    [Tuple[ExchangeClient, str]], bool
-] = lambda exchange_client: not (
-    hasattr(exchange_client, "xrpl_oracle")
-    and getattr(exchange_client, "xrpl_oracle") is True
+filter_pred_non_oracle_client: Callable[[Tuple[ExchangeClient, str]], bool] = (
+    lambda exchange_client: not getattr(exchange_client, "xrpl_oracle", False) is True
 )
 
 

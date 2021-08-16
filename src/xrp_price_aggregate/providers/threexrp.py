@@ -1,5 +1,14 @@
 """
-This will call the XRPL oracle to grab the price
+This will subscribe to ThreeXRP and listen to the prices for a few seconds
+
+In the future, we'll want to handle this more optimally giving all providers
+max time to do work with as many results as possible for aggregating
+
+A future update to the library will make this provider act less like a
+request/response like how it's implemented now:
+    1. grabbing a few prices
+    2. taking the average
+    3. returning that
 """
 import asyncio
 import json
@@ -13,15 +22,15 @@ from .base import FakeCCXT
 
 # how long to listen to incoming messages for, if we keep this short, we can
 # return a narrow window of all trades available to ThreeXRP
-# in the future, we'll want to handle this more optimally giving all providers
-# max time to do work with as many results as possible for aggregating
 # LISTEN_FOR_SECONDS = 10
 LISTEN_FOR_SECONDS = 1.337
 
 
 class ThreeXRP(FakeCCXT):
     """
-    Look up data that was persisted to the XRPL via the XRPL Oracles.
+    Listen for data from ThreeXRP 🌐
+
+    https://threexrp.dev
     """
 
     fast = False

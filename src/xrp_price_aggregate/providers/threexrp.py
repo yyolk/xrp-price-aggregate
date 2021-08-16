@@ -27,9 +27,6 @@ class ThreeXRP(FakeCCXT):
     fast = False
     fetch_ticker_url = "wss://threexrp.dev"
 
-    # def __init__(self) -> None:
-    #     self.client = None
-
     @property
     def id(self) -> str:
         return "threexrp"

@@ -18,6 +18,9 @@ class XRPLOracle(FakeCCXT):
     Look up data that was persisted to the XRPL via the XRPL Oracles.
     """
 
+    # although the retrieval is generally considered 'fast', the frequency of
+    # updates isn't (1/min)
+    fast = False
     # assume mainnet
     fetch_ticker_url = "https://xrplcluster.com"
     xrpl_oracle = True

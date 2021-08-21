@@ -35,6 +35,8 @@ class ThreeXRP(FakeCCXT):
 
     fast = False
     fetch_ticker_url = "wss://threexrp.dev"
+    # pretend we're the oracle so we're skipped in filtering?
+    # xrpl_oracle = True
 
     @property
     def id(self) -> str:

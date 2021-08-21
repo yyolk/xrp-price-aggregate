@@ -1,3 +1,7 @@
+"""
+TODO:
+    - https://github.com/yyolk/xrp-price-aggregate/issues/13
+"""
 from functools import partial
 from typing import Callable, List, Set, Tuple
 
@@ -9,7 +13,7 @@ from .bitstamp import Bitstamp
 from .bitrue import Bitrue
 from .hitbtc import Hitbtc
 from .kraken import Kraken
-from .threexrp import ThreeXRP
+# from .threexrp import ThreeXRP
 from .xrpl_oracle import XRPLOracle
 
 
@@ -57,7 +61,7 @@ def generate_default() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, 
     binance2 = Binance()
     kraken2 = Kraken()
     hitbtc2 = Hitbtc()
-    threexrp = ThreeXRP()
+    # threexrp = ThreeXRP()
     xrpl_oracle = XRPLOracle()
     # combine them all into a set for reference and iterating later
     exchanges = {
@@ -73,7 +77,7 @@ def generate_default() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, 
         bitrue,
         binance2,
         kraken2,
-        threexrp,
+        # threexrp,
         xrpl_oracle,
     }
 
@@ -95,7 +99,7 @@ def generate_default() -> Tuple[Set[ExchangeClient], List[Tuple[ExchangeClient, 
         (bitrue, "XRPUSDT"),
         (binance2, "XRPUSDT"),
         (kraken2, "XRPUSD"),
-        (threexrp, "USD"),
+        # (threexrp, "USD"),
         (xrpl_oracle, "USD"),
     ]
     return exchanges, exchange_with_tickers

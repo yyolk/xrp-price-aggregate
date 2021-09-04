@@ -13,6 +13,7 @@ from .bitstamp import Bitstamp
 from .bitrue import Bitrue
 from .hitbtc import Hitbtc
 from .kraken import Kraken
+
 # from .threexrp import ThreeXRP
 from .xrpl_oracle import XRPLOracle
 

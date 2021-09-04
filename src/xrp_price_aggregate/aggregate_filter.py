@@ -18,6 +18,8 @@ from typing import (
     Union,
 )
 
+import httpx
+
 from .providers import ExchangeClient, generate_default, generate_fast, generate_oracle
 
 
@@ -26,6 +28,9 @@ AggregateResultValue = Union[Dict[str, List[Decimal]], Decimal, List[Decimal]]
 logger = logging.getLogger(__name__)
 # https://docs.python.org/3/howto/logging.html#configuring-logging-for-a-library
 logger.addHandler(logging.NullHandler())
+
+# TODO make this exposed as wrapped exception that can be ignored by us
+_FILTERED_CLIENT_EXCEPTIONS = (httpx.RequestError,)
 
 
 def default_for_decimal(obj: Decimal) -> str:
@@ -157,8 +162,12 @@ async def _aggregate_multiple(
             #     ("exchange2", result),
             #     ...
             # ]
-            result
-            for results in await asyncio.gather(*tasks)
+            # we'll get errors of any bad calls, we'll ignore them with this
+            # predicate
+            result if not isinstance(result, _FILTERED_CLIENT_EXCEPTIONS) else None
+            # we unpack the results from the gathered tasks
+            for results in await asyncio.gather(*tasks, return_exceptions=True)
+            # we unpack each result from each results list
             for result in results
         ]
 
@@ -213,7 +222,9 @@ async def _aggregate_multiple(
         # we have no return, this is run "on the way out"
         close_exchanges_tasks = [exchange.close() for exchange in exchanges]
         # shield in case we are timed out, so the clients are closed
-        await asyncio.shield(asyncio.gather(*close_exchanges_tasks))
+        await asyncio.shield(
+            asyncio.gather(*close_exchanges_tasks, return_exceptions=True)
+        )
 
 
 def _compute_timeout(count: int, delay: float) -> int:

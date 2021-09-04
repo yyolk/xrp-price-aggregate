@@ -148,28 +148,35 @@ async def _aggregate_multiple(
     }
 
     try:
-        all_results: List[Tuple[str, Decimal]] = [
-            # the gathered results are nested per client.
-            # we flatten it in this comprehension
-            # [
-            #     [ ("exchange1", result), ("exchange1", result) ]
-            #     [ ("exchange2", result) ]
-            #     ...
-            # ] ->
-            # [
-            #     ("exchange1", result),
-            #     ("exchange1", result),
-            #     ("exchange2", result),
-            #     ...
-            # ]
-            # we'll get errors of any bad calls, we'll ignore them with this
-            # predicate
-            result if not isinstance(result, _FILTERED_CLIENT_EXCEPTIONS) else None
-            # we unpack the results from the gathered tasks
-            for results in await asyncio.gather(*tasks, return_exceptions=True)
-            # we unpack each result from each results list
-            for result in results
-        ]
+        all_results: List[Tuple[str, Decimal]] = list(
+            filter(
+                lambda x: x is not None,
+                [
+                    # the gathered results are nested per client.
+                    # we flatten it in this comprehension
+                    # [
+                    #     [ ("exchange1", result), ("exchange1", result) ]
+                    #     [ ("exchange2", result) ]
+                    #     ...
+                    # ] ->
+                    # [
+                    #     ("exchange1", result),
+                    #     ("exchange1", result),
+                    #     ("exchange2", result),
+                    #     ...
+                    # ]
+                    # we'll get errors of any bad calls, we'll ignore them with this
+                    # predicate
+                    result
+                    if not isinstance(result, _FILTERED_CLIENT_EXCEPTIONS)
+                    else None
+                    # we unpack the results from the gathered tasks
+                    for results in await asyncio.gather(*tasks, return_exceptions=True)
+                    # we unpack each result from each results list
+                    for result in results
+                ],
+            )
+        )
 
         # fill our containers with {, named} results
         for exchange_name, raw_result in all_results:
